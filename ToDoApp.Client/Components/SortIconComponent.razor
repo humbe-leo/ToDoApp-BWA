@@ -1,0 +1,16 @@
+﻿
+@if (Column == CurrentSortColumn)
+{
+    <span class="oi @(IsAscending ? "oi-arrow-top" : "oi-arrow-bottom")" aria-hidden="true"></span>
+}
+
+@code {
+    [Parameter] 
+    public string Column { get; set; }
+    
+    [Parameter] 
+    public string CurrentSortColumn { get; set; }
+    
+    [Parameter] 
+    public bool IsAscending { get; set; }
+}

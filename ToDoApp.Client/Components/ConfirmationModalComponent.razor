@@ -1,0 +1,51 @@
+﻿<div class="modal-overlay @(_showModal ? "show" : "")" @onclick="CloseConfirmation">
+    <div class="modal-dialog modal-dialog-centered" role="document" @onclick:stopPropagation>
+        <div class="modal-content">
+            <div class="mt-4">
+                <h2 class="fw-bold text-center">¿Está seguro?</h2>
+            </div>
+            <div class="modal-body">
+                <p class="text-center">Que desea eliminar @ItemName</p>
+            </div>
+            <div class="d-flex align-self-center gap-4 mb-4">
+                <button type="button" class="btn btn-secondary" @onclick="CloseConfirmation">Cancelar</button>
+                <button type="button" class="btn btn-primary" @onclick="AcceptModal">Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int? ItemId { get; set; }
+    
+    [Parameter]
+    public required string ItemName { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback OnCloseModal { get; set; }
+
+    [Parameter]
+    public EventCallback<int?> OnAcceptModal { get; set; }
+
+    private bool _showModal = false;
+
+    public void ShowModal()
+    {
+        _showModal = true;
+    }
+
+    private void CloseConfirmation()
+    {
+        _showModal = false;
+        ItemName = string.Empty;
+        OnCloseModal.InvokeAsync();
+    }
+
+    private void AcceptModal()
+    {
+        OnAcceptModal.InvokeAsync(ItemId);
+        ItemName = string.Empty;
+        _showModal = false;
+    }
+}

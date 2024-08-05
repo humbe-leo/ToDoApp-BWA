@@ -1,0 +1,37 @@
+﻿@inject ILogger<SubTaskControlButtonsComponent> logger
+
+<div class="header-controls rounded">
+    <button class="btn btn-primary btn-block me-2" @onclick="OnAddSubTask">
+        <span class="oi oi-plus me-2" aria-hidden="true"></span> Agregar tarea
+    </button>
+    @if (SelectedSubTasksCount > 0)
+    {
+        <button class="btn btn-primary btn-block me-2" @onclick="OnCompleteSubTask">
+            <span class="oi oi-circle-check me-2" aria-hidden="true"></span> Completar tarea
+        </button>
+        <button class="btn btn-primary btn-block me-2 @(SelectedSubTasksCount != 1 ? "d-none" : "")" @onclick="OnEditSubTask">
+            <span class="oi oi-pencil me-2" aria-hidden="true"></span> Editar
+        </button>
+        <button class="btn btn-primary btn-block me-2" @onclick="OnDeleteSubTask">
+            <span class="oi oi-trash me-2" aria-hidden="true"></span> Eliminar
+        </button>
+    }
+    
+</div>
+
+@code {
+    [Parameter] 
+    public EventCallback OnAddSubTask { get; set; }
+
+    [Parameter] 
+    public EventCallback OnCompleteSubTask { get; set; }
+
+    [Parameter] 
+    public EventCallback OnEditSubTask { get; set; }
+
+    [Parameter] 
+    public EventCallback OnDeleteSubTask { get; set; }
+
+    [Parameter]
+    public int SelectedSubTasksCount { get; set; }
+}

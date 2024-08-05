@@ -1,0 +1,35 @@
+﻿<div class="task-item @(IsSelected ? "selected" : "")" @onclick="() => OnClick.InvokeAsync(Goal)">
+    <div class="d-flex justify-content-between">
+        <h5 class="fw-bold">@Goal.Title</h5>
+        <div>
+            <button type="button" @onclick="(() => OnEditGoal.InvokeAsync(Goal))" class="btn rounded-circle border-0 @(IsSelected ? "btn-outline-light" : "btn-outline-primary")">
+                <span class="oi oi-pencil"></span>
+            </button>
+            <button type="button" @onclick="(() => OnDeleteGoal.InvokeAsync(Goal))" class="btn rounded-circle border-0 @(IsSelected ? "btn-outline-light" : "btn-outline-primary")">
+                <span class="oi oi-trash"></span>
+            </button>
+        </div>
+    </div>
+    <p>Fecha creada: @Goal.DateCreated.ToShortDateString()</p>
+    <div class="progress mb-2">
+        <div class="progress-bar" role="progressbar" style="width: @Goal.Progress%;">@Goal.Progress%</div>
+    </div>
+    <p>Tareas completadas: @Goal.CompletedTasks</p>
+</div>
+
+@code {
+    [Parameter] 
+    public Goal Goal { get; set; }
+    
+    [Parameter] 
+    public bool IsSelected { get; set; }
+    
+    [Parameter] 
+    public EventCallback<Goal> OnClick { get; set; }
+    
+    [Parameter]
+    public EventCallback<Goal> OnEditGoal { get; set; }
+    
+    [Parameter]
+    public EventCallback<Goal> OnDeleteGoal { get; set; }
+}

@@ -1,0 +1,112 @@
+﻿@inject ILogger<SubTaskTableComponent> logger
+
+<div class="content bg-white">
+	<table class="table table-hover">
+		<SubTaskTableHeaderComponent @ref="subTaskTableHeader"
+									 OnSort="@HandleSort"
+									 OnFilter="@HandleFilter"
+									 OnSelectAll="@OnAllSubTasksSelected"
+									 CurrentSortColumn="@currentSortColumn"
+									 IsAscending="@isAscending"
+									 IsAllSelected="SubTasks.Count > 0 && SubTasks.Count == SelectedSubTasks.Count" />
+		<tbody>
+			@foreach (var subtask in FilteredSubTasks)
+			{
+				<SubTaskTableRowComponent SubTask="@subtask" OnSubTaskSelected="@OnSubTasksSelected" IsSelected="SelectedSubTasks.Contains(subtask)" OnSubTaskImportantToggled="@OnSubTaskImportantToggled" />
+			}
+		</tbody>
+	</table>
+</div>
+
+@code {
+	[Parameter]
+	public List<SubTask> SubTasks { get; set; }
+
+	[Parameter]
+	public EventCallback<(SubTask SubTask, bool IsSelected)> OnSubTasksSelected { get; set; }
+
+	[Parameter]
+	public EventCallback<string> OnSort { get; set; }
+
+	[Parameter]
+	public EventCallback<FilterCriteria> OnFilter { get; set; }
+
+	[Parameter]
+	public List<SubTask> SelectedSubTasks { get; set; }
+
+	[Parameter]
+	public EventCallback<bool> OnAllSubTasksSelected { get; set; }
+
+	[Parameter]
+	public EventCallback<SubTask> OnSubTaskImportantToggled { get; set; }
+
+	private string currentSortColumn;
+	private bool isAscending;
+	private FilterCriteria currentFilter;
+	private List<SubTask> FilteredSubTasks => ApplyFilterAndSort(SubTasks);
+	private SubTaskTableHeaderComponent subTaskTableHeader;
+
+	protected override void OnParametersSet()
+	{
+		currentFilter = null;
+		subTaskTableHeader?.InitValues();
+	}
+
+	private void HandleSort(string column)
+	{
+		if (column == currentSortColumn)
+		{
+			isAscending = !isAscending;
+		}
+		else
+		{
+			currentSortColumn = column;
+			isAscending = true;
+		}
+	}
+
+	private void HandleFilter(FilterCriteria criteria)
+	{
+		currentFilter = criteria;
+	}
+
+	private List<SubTask> ApplyFilterAndSort(List<SubTask> subtasks)
+	{
+		var filteredSubTasks = subtasks;
+
+		if (currentFilter != null)
+		{
+			if (!string.IsNullOrWhiteSpace(currentFilter.TitleFilter))
+			{
+				filteredSubTasks = filteredSubTasks.Where(p => p.Title.Contains(currentFilter.TitleFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+			}
+			if (currentFilter.DateFilter.HasValue)
+			{
+				filteredSubTasks = filteredSubTasks.Where(p => p.DateCreated.ToShortDateString() == currentFilter.DateFilter.Value.ToShortDateString()).ToList();
+			}
+			if (!string.IsNullOrWhiteSpace(currentFilter.StatusFilter))
+			{
+				filteredSubTasks = filteredSubTasks.Where(p => p.Status.Contains(currentFilter.StatusFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+			}
+		}
+
+		if (!string.IsNullOrEmpty(currentSortColumn))
+		{
+			filteredSubTasks = currentSortColumn switch
+			{
+				nameof(SubTask.Title) => isAscending
+					? filteredSubTasks.OrderBy(p => p.Title).ToList()
+					: filteredSubTasks.OrderByDescending(p => p.Title).ToList(),
+				nameof(SubTask.DateCreated) => isAscending
+					? filteredSubTasks.OrderBy(p => p.DateCreated).ToList()
+					: filteredSubTasks.OrderByDescending(p => p.DateCreated).ToList(),
+				nameof(SubTask.Status) => isAscending
+					? filteredSubTasks.OrderBy(p => p.Status).ToList()
+					: filteredSubTasks.OrderByDescending(p => p.Status).ToList(),
+				_ => filteredSubTasks
+			};
+		}
+
+		return filteredSubTasks;
+	}
+}

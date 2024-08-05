@@ -1,0 +1,22 @@
+﻿
+@foreach (var goal in Goals)
+{
+    <GoalListItemComponent Goal="@goal" IsSelected="@(goal == SelectedGoal)" OnClick="@OnGoalSelected" OnEditGoal="OnEditGoal" OnDeleteGoal="OnDeleteGoal" />
+}
+
+@code {
+    [Parameter] 
+    public List<Goal> Goals { get; set; }
+
+    [Parameter] 
+    public EventCallback<Goal> OnGoalSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<Goal> OnEditGoal { get; set; }
+
+    [Parameter]
+    public EventCallback<Goal> OnDeleteGoal { get; set; }
+
+    [Parameter]
+    public Goal SelectedGoal { get; set; }
+}

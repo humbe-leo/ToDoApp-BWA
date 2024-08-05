@@ -1,0 +1,108 @@
+﻿@inject ILogger<SubTaskTableHeaderComponent> logger
+
+<thead style="background-color: #13317d;" class="text-white sticky-top">
+	<tr>
+		<th scope="col">
+			<input type="checkbox" checked="@IsAllSelected" @onchange="OnSelectAllChanged" />
+		</th>
+		<th scope="col"></th>
+		<th scope="col">
+			<button @onclick="() => OnSort.InvokeAsync(nameof(SubTask.Title))" class="btn btn-link text-white p-0">
+				Tarea <SortIconComponent Column="@nameof(SubTask.Title)" CurrentSortColumn="@CurrentSortColumn" IsAscending="@IsAscending" />
+			</button>
+			<input type="search" class="form-control form-control-sm mt-1" placeholder="Filtrar tarea"
+			@bind-value="@titleFilter" @bind-value:event="oninput" />
+		</th>
+		<th scope="col">
+			<button @onclick="() => OnSort.InvokeAsync(nameof(SubTask.DateCreated))" class="btn btn-link text-white p-0">
+				Fecha <SortIconComponent Column="@nameof(SubTask.DateCreated)" CurrentSortColumn="@CurrentSortColumn" IsAscending="@IsAscending" />
+			</button>
+			<input type="date" class="form-control form-control-sm mt-1" placeholder="Filtrar fecha"
+			@bind-value="dateFilter" @bind-value:event="oninput" />
+		</th>
+		<th scope="col">
+			<button @onclick="() => OnSort.InvokeAsync(nameof(SubTask.Status))" class="btn btn-link text-white p-0">
+				Estado <SortIconComponent Column="@nameof(SubTask.Status)" CurrentSortColumn="@CurrentSortColumn" IsAscending="@IsAscending" />
+			</button>
+			<input type="search" class="form-control form-control-sm mt-1" placeholder="Filtrar estado"
+			@bind-value="statusFilter" @bind-value:event="oninput" />
+		</th>
+	</tr>
+</thead>
+
+@code {
+	[Parameter]
+	public EventCallback<string> OnSort { get; set; }
+
+	[Parameter]
+	public EventCallback<FilterCriteria> OnFilter { get; set; }
+
+	[Parameter]
+	public EventCallback<bool> OnSelectAll { get; set; }
+
+	[Parameter]
+	public string CurrentSortColumn { get; set; }
+
+	[Parameter]
+	public bool IsAscending { get; set; }
+
+	[Parameter]
+	public bool IsAllSelected { get; set; }
+
+	public void InitValues()
+	{
+		_titleFilter = "";
+		_dateFilter = null;
+		_statusFilter = "";
+
+		StateHasChanged();
+	}
+
+	private string _titleFilter = "";
+	private string titleFilter
+	{
+		get => _titleFilter;
+		set
+		{
+			_titleFilter = value;
+			FilterTasks();
+		}
+	}
+	private DateTime? _dateFilter;
+	private DateTime? dateFilter
+	{
+		get => _dateFilter;
+		set
+		{
+			_dateFilter = value;
+			FilterTasks();
+		}
+	}
+	private string _statusFilter = "";
+	private string statusFilter
+	{
+		get => _statusFilter;
+		set
+		{
+			_statusFilter = value;
+			FilterTasks();
+		}
+	}
+
+	private void OnSelectAllChanged(ChangeEventArgs e)
+	{
+		bool isChecked = (bool)e.Value;
+		OnSelectAll.InvokeAsync(isChecked);
+	}
+
+	private void FilterTasks()
+	{
+		var filterCriteria = new FilterCriteria
+			{
+				TitleFilter = titleFilter,
+				DateFilter = dateFilter,
+				StatusFilter = statusFilter
+			};
+		OnFilter.InvokeAsync(filterCriteria);
+	}
+}

@@ -1,0 +1,123 @@
+﻿@page "/"
+@inject IGoalService GoalService
+@inject ISubTaskService SubTaskService
+@inject ILogger<Index> logger
+
+<PageTitle>To Do App</PageTitle>
+
+<div class="container-fluid">
+    <!-- Top Section -->
+    <TopSectionComponent />
+    <div class="row">
+        <!-- Left Sidebar -->
+        <LeftSidebarComponent Goals="@Goals" SelectedGoal="selectedGoal" OnGoalSelected="@HandleGoalSelectedAsync" OnNewGoalClick="@ShowNewGoalModal" OnEditGoal="@ShowEditGoalModal" OnDeleteGoal="@ShowDeleteGoalModal" />
+        <!-- Right Main Section -->
+        <RightMainSectionComponent SelectedGoal="@selectedGoal" SubTasks="@SubTasks" OnSubTasksUpdated="@OnSubTasksUpdatedAsync" CurrentPage="@currentPage" TotalPages="@totalPages" MaxVisiblePages="@pageSize" />
+    </div>
+</div>
+
+<!-- Modal -->
+<ModalComponent @ref="newGoalModal" ModelType="@typeof(Goal)" ModalTitle="Agregar nueva meta" OnAcceptModal="@CreateNewGoalAsync" />
+<ModalComponent @ref="editGoalModal" ModelType="@typeof(Goal)" ModalTitle="Editar meta" OnAcceptModal="@EditGoalAsync" TitleValue="@selectedGoal?.Title" />
+<!-- Confirmation Modal -->
+<ConfirmationModalComponent @ref="deleteGoalModal" ItemName="@selectedGoal?.Title" ItemId="@selectedGoal?.GoalId" OnAcceptModal="@DeleteGoalAsync" />
+
+@code {
+    private List<Goal> Goals = new List<Goal>();
+    private List<SubTask> SubTasks = new List<SubTask>();
+    private Goal? selectedGoal;
+    private ModalComponent newGoalModal;
+    private ModalComponent editGoalModal;
+    private ConfirmationModalComponent deleteGoalModal;
+    private int currentPage = 1;
+    private int pageSize = 5;
+    private int totalPages;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Goals = await GoalService.GetAllGoalsAsync();
+    }
+
+    private async Task HandleGoalSelectedAsync(Goal goal)
+    {
+        if (selectedGoal == goal)
+        {
+            return;
+        }
+        selectedGoal = goal;
+        var pagedResult = await SubTaskService.GetSubTasksByGoalIdPagedAsync(goal.GoalId, pageSize, currentPage);
+        await SubTaskService.GetSubTasksByGoalIdAsync(goal.GoalId);
+        SubTasks = pagedResult.Items;
+        totalPages = pagedResult.TotalPages;
+    }
+
+    private void ShowNewGoalModal()
+    {
+        newGoalModal.ShowModal();
+    }
+
+    private async Task CreateNewGoalAsync(string title)
+    {
+        var newGoal = new Goal
+        {
+            Title = title
+        };
+        newGoal = await GoalService.AddGoalAsync(newGoal);
+        Goals.Add(newGoal);
+        StateHasChanged();
+    }
+
+    private void ShowEditGoalModal()
+    {
+        editGoalModal.ShowModal();
+    }
+
+    private async Task EditGoalAsync(string title)
+    {
+        var updateGoal = new Goal
+        {
+            GoalId = selectedGoal.GoalId,
+            Title = title,
+            Progress = selectedGoal.Progress,
+        };
+        updateGoal = await GoalService.UpdateGoalAsync(updateGoal);
+        updateGoal.CompletedTasks = selectedGoal.CompletedTasks;
+        selectedGoal = updateGoal;
+        int index = Goals.FindIndex(p => p.GoalId == updateGoal?.GoalId);
+        Goals.RemoveAt(index);
+        Goals.Insert(index, updateGoal);
+        StateHasChanged();
+    }
+
+    private void ShowDeleteGoalModal()
+    {
+        deleteGoalModal.ShowModal();
+    }
+
+    private async Task DeleteGoalAsync(int? goalId)
+    {
+        if (goalId == null)
+            return;
+
+        bool wasDeleted = await GoalService.DeleteGoalAsync((int)goalId);
+        int index = Goals.FindIndex(p => p.GoalId == goalId);
+        Goals.RemoveAt(index);
+        selectedGoal = null;
+        StateHasChanged();
+    }
+
+    private async Task OnSubTasksUpdatedAsync(int? page)
+    {
+        var updatedGoal = await GoalService.GetGoalByIdAsync(selectedGoal.GoalId);
+        int index = Goals.FindIndex(p => p.GoalId == updatedGoal?.GoalId);
+        Goals.RemoveAt(index);
+        Goals.Insert(index, updatedGoal);
+        selectedGoal = updatedGoal;
+        currentPage = page ?? 1;
+        var pagedResult = await SubTaskService.GetSubTasksByGoalIdPagedAsync(selectedGoal.GoalId, pageSize, currentPage);
+        await SubTaskService.GetSubTasksByGoalIdAsync(selectedGoal.GoalId);
+        SubTasks = pagedResult.Items;
+        totalPages = pagedResult.TotalPages;
+        StateHasChanged();
+    }
+}

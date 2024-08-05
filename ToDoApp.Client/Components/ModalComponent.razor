@@ -1,0 +1,85 @@
+﻿@inject ILogger<ModalComponent> logger
+
+<div class="modal-overlay @(_showModal ? "show" : "")">
+	<div class="modal-dialog modal-dialog-centered" role="document" @onclick:stopPropagation>
+		<div class="modal-content">
+			<div class="modal-header text-white" style="background-color: #13317d;">
+				<h5 class="modal-title">@ModalTitle</h5>
+				<button type="button" class="btn btn-close btn-close-white" @onclick="CloseModal"></button>
+			</div>
+			<EditForm Model="@baseModel" OnValidSubmit="@AcceptModal">
+				<DataAnnotationsValidator />
+				<ValidationSummary />
+				<div class="modal-body">
+					<div class="form-group">
+						<label for="modalInput">Título:</label>
+						<InputText id="modalInput" @bind-Value="baseModel.Title" class="form-control" />
+						<ValidationMessage For="@(() => baseModel.Title)" />
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancelar</button>
+					<button type="submit" class="btn btn-primary">Aceptar</button>
+				</div>
+			</EditForm>
+		</div>
+	</div>
+</div>
+
+@code {
+	[Parameter]
+	public required string ModalTitle { get; set; }
+
+	[Parameter]
+	public required string TitleValue { get; set; } = "";
+
+	[Parameter]
+	public required Type ModelType { get; set; }
+
+	[Parameter]
+	public EventCallback OnCloseModal { get; set; }
+
+	[Parameter]
+	public EventCallback<string> OnAcceptModal { get; set; }
+
+	private bool _showModal = false;
+	private BaseModel baseModel;
+
+	protected override void OnParametersSet()
+	{
+		baseModel = ModelType switch
+		{
+			Type t when t == typeof(Goal) => new Goal
+				{
+					Title = TitleValue
+				},
+			Type t when t == typeof(SubTask) => new SubTask
+				{
+					Title = TitleValue
+				},
+			_ => new BaseModel
+				{
+					Title = TitleValue
+				}
+		};
+	}
+
+	public void ShowModal()
+	{
+		_showModal = true;
+	}
+
+	private void CloseModal()
+	{
+		_showModal = false;
+		TitleValue = string.Empty;
+		baseModel.Title = string.Empty;
+		OnCloseModal.InvokeAsync();
+	}
+
+	private void AcceptModal()
+	{
+		OnAcceptModal.InvokeAsync(baseModel.Title);
+		_showModal = false;
+	}
+}

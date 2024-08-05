@@ -1,0 +1,33 @@
+﻿
+<div class="col-lg-4">
+    <div class="left-sidebar">
+        <div class="header border rounded">
+            <button class="btn btn-primary btn-block" @onclick="OnNewGoalClick">
+                <span class="oi oi-plus me-2" aria-hidden="true"></span> Nueva meta
+            </button>
+        </div>
+        <div class="content bg-light navbar-nav-scroll">
+            <GoalListComponent Goals="@Goals" SelectedGoal="SelectedGoal" OnGoalSelected="@OnGoalSelected" OnEditGoal="OnEditGoal" OnDeleteGoal="OnDeleteGoal" />
+        </div>
+    </div>
+</div>
+
+@code{
+    [Parameter]
+    public List<Goal> Goals { get; set; }
+
+    [Parameter]
+    public Goal SelectedGoal { get; set; }
+    
+    [Parameter]
+    public EventCallback<Goal> OnGoalSelected { get; set; }
+    
+    [Parameter] 
+    public EventCallback OnNewGoalClick { get; set; }
+
+    [Parameter]
+    public EventCallback<Goal> OnEditGoal { get; set; }
+
+    [Parameter]
+    public EventCallback<Goal> OnDeleteGoal { get; set; }
+}

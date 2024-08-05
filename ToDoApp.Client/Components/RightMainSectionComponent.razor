@@ -1,0 +1,188 @@
+﻿@inject ISubTaskService SubTaskService
+@inject ILogger<RightMainSectionComponent> logger
+
+<div class="col-lg-8">
+	@if (SelectedGoal != null)
+	{
+		<div class="right-section">
+			<div class="header border rounded">
+				<h4 class="fw-bold">@SelectedGoal.Title</h4>
+			</div>
+			<div class="p-2 bg-light">
+				<div class="border rounded">
+					<SubTaskControlButtonsComponent OnAddSubTask="@AddSubTask"
+													OnCompleteSubTask="@CompleteSubTaskAsync"
+													OnEditSubTask="@EditSubTask"
+													OnDeleteSubTask="@DeleteSubTask"
+													SelectedSubTasksCount="@SelectedSubTasks.Count" />
+					<SubTaskTableComponent SubTasks="@SubTasks" OnSubTasksSelected="@OnSubTasksSelected" OnAllSubTasksSelected="@OnAllSubTasksSelected" SelectedSubTasks="SelectedSubTasks" OnSubTaskImportantToggled="@SubTaskImportantToggled" />
+					<PaginationComponent CurrentPage="@CurrentPage" TotalPages="@TotalPages" MaxVisiblePages="@MaxVisiblePages" OnPageChanged="@OnPageChangedAsync" />
+				</div>
+			</div>
+		</div>
+	}
+	else
+	{
+		<p>Selecciona una meta para ver detalles.</p>
+	}
+</div>
+<!-- Modal -->
+<ModalComponent @ref="newSubTaskModal" ModelType="@typeof(SubTask)" ModalTitle="Agregar tarea" OnAcceptModal="@CreateNewSubTaskAsync" />
+<ModalComponent @ref="editSubTaskModal" ModelType="@typeof(SubTask)" ModalTitle="Editar tarea" OnAcceptModal="@EditSubTaskAsync" TitleValue="@(SelectedSubTasks.Count > 0 ? SelectedSubTasks[0].Title : "")" />
+<!-- Confirmation Modal -->
+<ConfirmationModalComponent @ref="deleteSubTaskModal"
+							ItemName="@(SelectedSubTasks.Count == 1 ? SelectedSubTasks[0].Title : $"las {SelectedSubTasks.Count} tareas seleccionadas")"
+							OnAcceptModal="@DeleteSubTasksAsync" />
+
+@code {
+	[Parameter]
+	public Goal SelectedGoal { get; set; }
+
+	[Parameter]
+	public List<SubTask> SubTasks { get; set; }
+
+	[Parameter]
+	public int CurrentPage { get; set; }
+
+	[Parameter]
+	public int TotalPages { get; set; }
+
+	[Parameter]
+	public int MaxVisiblePages { get; set; }
+
+	[Parameter]
+	public EventCallback<int?> OnSubTasksUpdated { get; set; }
+
+	private ModalComponent newSubTaskModal;
+	private ModalComponent editSubTaskModal;
+	private ConfirmationModalComponent deleteSubTaskModal;
+	private List<SubTask> SelectedSubTasks = new List<SubTask>();
+
+	protected override void OnParametersSet()
+	{
+		SelectedSubTasks = new List<SubTask>();
+	}
+
+	private void AddSubTask()
+	{
+		newSubTaskModal.ShowModal();
+	}
+
+	private async Task CompleteSubTaskAsync()
+	{
+		SelectedSubTasks.ForEach(p => p.Status = "Completada");
+		var updatedSubTasks = await SubTaskService.UpdateSubTaskRangeAsync(SelectedSubTasks);
+		foreach (var subtask in updatedSubTasks)
+		{
+			int index = SubTasks.FindIndex(p => p.SubTaskId == subtask.SubTaskId);
+			int selectedIndex = SelectedSubTasks.FindIndex(p => p.SubTaskId == subtask.SubTaskId);
+			SubTasks.RemoveAt(index);
+			SubTasks.Insert(index, subtask);
+			SelectedSubTasks.RemoveAt(selectedIndex);
+			SelectedSubTasks.Insert(selectedIndex, subtask);
+		}
+		await OnSubTasksUpdated.InvokeAsync();
+		StateHasChanged();
+	}
+
+	private void EditSubTask()
+	{
+		editSubTaskModal.ShowModal();
+	}
+
+	private void DeleteSubTask()
+	{
+		deleteSubTaskModal.ShowModal();
+	}
+
+	private async Task OnPageChangedAsync(int page)
+	{
+		if (CurrentPage == page)
+		{
+			return;
+		}
+		await OnSubTasksUpdated.InvokeAsync(page);
+	}
+
+	private async Task CreateNewSubTaskAsync(string title)
+	{
+		var newSubTask = new SubTask
+			{
+				Title = title,
+				GoalId = SelectedGoal.GoalId
+			};
+		_ = await SubTaskService.AddSubTaskAsync(newSubTask);
+		await OnSubTasksUpdated.InvokeAsync(CurrentPage);
+		StateHasChanged();
+	}
+
+	private async Task EditSubTaskAsync(string title)
+	{
+		var updateSubTask = new SubTask
+			{
+				SubTaskId = SelectedSubTasks[0].SubTaskId,
+				GoalId = SelectedSubTasks[0].GoalId,
+				Title = title,
+				IsImportant = SelectedSubTasks[0].IsImportant,
+				Status = SelectedSubTasks[0].Status,
+			};
+		updateSubTask = await SubTaskService.UpdateSubTaskAsync(updateSubTask);
+		int index = SubTasks.FindIndex(p => p.SubTaskId == updateSubTask?.SubTaskId);
+		SubTasks.RemoveAt(index);
+		SubTasks.Insert(index, updateSubTask);
+		SelectedSubTasks.RemoveAt(0);
+		SelectedSubTasks.Add(updateSubTask);
+		StateHasChanged();
+	}
+
+	private async Task SubTaskImportantToggled(SubTask subTask)
+	{
+		var updateSubTask = await SubTaskService.UpdateSubTaskAsync(subTask);
+		StateHasChanged();
+	}
+
+	private async Task DeleteSubTasksAsync()
+	{
+		var ids = SelectedSubTasks.Select(p => p.SubTaskId).ToList();
+		var deletedSuccessful = await SubTaskService.DeleteSubTaskRangeAsync(ids);
+		if (!deletedSuccessful)
+		{
+			return;
+		}
+
+		SubTasks.RemoveAll(p => ids.Contains(p.SubTaskId));
+		SelectedSubTasks.Clear();
+		await OnSubTasksUpdated.InvokeAsync();
+		StateHasChanged();
+	}
+
+	private void OnSubTasksSelected((SubTask SubTask, bool IsSelected) args)
+	{
+		if (args.IsSelected)
+		{
+			SelectedSubTasks.Add(args.SubTask);
+		}
+		else
+		{
+			SelectedSubTasks.Remove(args.SubTask);
+		}
+	}
+
+	private void OnAllSubTasksSelected(bool allSelected)
+	{
+		if (!allSelected)
+		{
+			SelectedSubTasks.Clear();
+		}
+		else
+		{
+			foreach (var subTask in SubTasks)
+			{
+				if (!SelectedSubTasks.Contains(subTask))
+				{
+					SelectedSubTasks.Add(subTask);
+				}
+			}
+		}
+	}
+}

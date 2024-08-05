@@ -1,0 +1,64 @@
+﻿
+<tr class="@(IsSelected ? "table-active" : "")">
+    <td>
+        <input type="checkbox" checked="@IsSelected" @onchange="OnSelectChanged" />
+    </td>
+    <td>
+        <div class="form-check">
+            <input type="checkbox" id="@($"star-{SubTask.SubTaskId}")" checked="@SubTask.IsImportant" @onchange="OnImportantChanged" class="d-none" />
+            <label for="@($"star-{SubTask.SubTaskId}")" class="star-checkbox">
+                <i class="@(SubTask.IsImportant ? "fas fa-star" : "far fa-star")"></i>
+            </label>
+        </div>
+    </td>
+    <td @onclick="() => OnSubTaskClicked.InvokeAsync(SubTask)">
+        @SubTask.Title
+    </td>
+    <td @onclick="() => OnSubTaskClicked.InvokeAsync(SubTask)">
+        @SubTask.DateCreated.ToShortDateString()
+    </td>
+    <td @onclick="() => OnSubTaskClicked.InvokeAsync(SubTask)">
+        <span class="badge @GetStatusBadgeClass()">@SubTask.Status</span>
+    </td>
+</tr>
+
+@code {
+    [Parameter] 
+    public SubTask SubTask { get; set; }
+    
+    [Parameter] 
+    public bool IsSelected { get; set; }
+    
+    [Parameter] 
+    public EventCallback<SubTask> OnSubTaskClicked { get; set; }
+    
+    [Parameter] 
+    public EventCallback<(SubTask SubTask, bool IsSelected)> OnSubTaskSelected { get; set; }
+    
+    [Parameter] 
+    public EventCallback<SubTask> OnSubTaskImportantToggled { get; set; }
+
+    private void OnSelectChanged(ChangeEventArgs e)
+    {
+        bool isChecked = (bool)e.Value;
+        OnSubTaskSelected.InvokeAsync((SubTask, isChecked));
+    }
+
+    private void OnImportantChanged(ChangeEventArgs e)
+    {
+        bool isImportant = (bool)e.Value;
+        SubTask.IsImportant = isImportant;
+        OnSubTaskImportantToggled.InvokeAsync(SubTask);
+    }
+
+    private string GetStatusBadgeClass()
+    {
+        return SubTask.Status.ToLower() switch
+        {
+            "completada" => "bg-success",
+            "abierta" => "bg-warning",
+            "en progreso" => "bg-info",
+            _ => "bg-secondary"
+        };
+    }
+}

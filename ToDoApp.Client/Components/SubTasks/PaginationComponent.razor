@@ -1,0 +1,52 @@
+﻿
+<nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+            <button class="page-link" @onclick="() => OnPageChanged.InvokeAsync(CurrentPage - 1)" disabled="@(CurrentPage == 1)">
+                Anterior
+            </button>
+        </li>
+
+        @foreach (var pageNumber in GetPageNumbers())
+        {
+            <li class="page-item @(pageNumber == CurrentPage ? "active" : "")">
+                <button class="page-link" @onclick="() => OnPageChanged.InvokeAsync(pageNumber)">
+                    @pageNumber
+                </button>
+            </li>
+        }
+
+        <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+            <button class="page-link" @onclick="() => OnPageChanged.InvokeAsync(CurrentPage + 1)" disabled="@(CurrentPage == TotalPages)">
+                Siguiente
+            </button>
+        </li>
+    </ul>
+</nav>
+
+@code {
+    [Parameter] 
+    public int CurrentPage { get; set; } = 1;
+    
+    [Parameter] 
+    public int TotalPages { get; set; } = 1;
+    
+    [Parameter] 
+    public int MaxVisiblePages { get; set; }
+    
+    [Parameter] 
+    public EventCallback<int> OnPageChanged { get; set; }
+
+    private IEnumerable<int> GetPageNumbers()
+    {
+        int startPage = Math.Max(1, CurrentPage - MaxVisiblePages / 2);
+        int endPage = Math.Min(TotalPages, startPage + MaxVisiblePages - 1);
+
+        if (endPage - startPage + 1 < MaxVisiblePages)
+        {
+            startPage = Math.Max(1, endPage - MaxVisiblePages + 1);
+        }
+
+        return Enumerable.Range(startPage, endPage - startPage + 1);
+    }
+}
